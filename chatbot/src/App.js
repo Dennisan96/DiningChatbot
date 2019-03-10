@@ -1,136 +1,108 @@
-import React, { Component } from 'react';
+import { LinkContainer } from 'react-router-bootstrap';
+import React, { Component, Fragment } from 'react';
+import { Link, withRouter } from 'react-router-dom';
+
+import { Nav, Navbar, NavItem } from 'react-bootstrap';
+import Routes from './Routes';
+import { Auth } from 'aws-amplify';
+
+
+
 import './App.css';
 import { ChatFeed, Message, ChatBubble, BubbleGroup } from 'react-chat-ui'
 
-const uuidv1 = require('uuid/v1');
-var apigClientFactory = require('aws-api-gateway-client').default;
-
-var config = { invokeUrl: 'https://bvm2azi8h1.execute-api.us-east-1.amazonaws.com' };
-var apigClient = apigClientFactory.newClient(config);
-
-var id = uuidv1();
-var method = 'POST';
-var params = {};
-var additionParms = {
-};
-var path = '/dev/chatbot';
 
 
-const users = {
-  0: 'Bot',
-  1: 'User',
-};
 
-const EXTERNAL_URL = "https://bvm2azi8h1.execute-api.us-east-1.amazonaws.com/dev/chatbot";
-
-const styles = {
-  button: {
-    backgroundColor: '#fff',
-    borderColor: '#1D2129',
-    borderStyle: 'solid',
-    borderRadius: 20,
-    borderWidth: 2,
-    color: '#1D2129',
-    fontSize: 18,
-    fontWeight: '300',
-    paddingTop: 8,
-    paddingBottom: 8,
-    paddingLeft: 16,
-    paddingRight: 16,
-  },
-};
+// const styles = {
+//   button: {
+//     backgroundColor: '#fff',
+//     borderColor: '#1D2129',
+//     borderStyle: 'solid',
+//     borderRadius: 20,
+//     borderWidth: 2,
+//     color: '#1D2129',
+//     fontSize: 18,
+//     fontWeight: '300',
+//     paddingTop: 8,
+//     paddingBottom: 8,
+//     paddingLeft: 16,
+//     paddingRight: 16,
+//   },
+// };
 
 
 class App extends Component {
-  constructor() {
-    super();
-    this.state = {
-      messages: [],
-    };
-  }
+	constructor(props) {
+		super(props);
 
-  onMessageSubmit(e) {
-    const input = this.message;
-    console.log(input);
-    e.preventDefault();
-    if (!input.value) {
-      return false;
-    }
+		this.state = {
+			isAuthenticated: false,
+			isAuthenticating: true
+		};
+	}
 
-    this.pushMessage(0, input.value)
+	async componentDidMount() {
+		try {
+			if (await Auth.currentSession()) {
+				this.userHasAuthenticated(true);
+			}
+		} catch (e) {
+			if (e !== 'No current user') {
+				alert(e);
+			}
+		}
 
-    const time = new Date().getTime()
+		this.setState({ isAuthenticating: false });
+	}
 
-    // find out what body it should sent
+	userHasAuthenticated = authenticated => {
+		this.setState({ isAuthenticated: authenticated });
+	};
 
-    const out = {
-      "messages": [
-        {
-          "type": "type_a",
-          "unstructured": {
-            "id": id,
-            "text": input.value,
-            "timestamp": time
-          }
-        }
-      ]
-    }
-    console.log(out);
-    input.value = '';
+	handleLogout = async event => {
+		await Auth.signOut();
 
-    apigClient.invokeApi(params, path, method, additionParms, out)
-      .then((res) => {
-        console.log(res);
-        this.pushMessage(1, res.data.unstructured.text);
-      }).catch((res) => {
-        console.log(res);
-      })
-
-    // axios.post(EXTERNAL_URL, out, { headers: headers }).then(res => {
-    //   console.log(res)
-    //   this.pushMessage(1, res['unstructed']['text']);
-    // }).catch(error => {
-    //   console.log(error)
-    // })
-    return true;
-  }
-
-  pushMessage(recipient, message) {
-    const prevState = this.state;
-    const newMessage = new Message({
-      id: recipient,
-      message,
-      senderName: users[recipient]
-    })
-    prevState.messages.push(newMessage);
-    this.setState(this.state);
-  }
+		this.userHasAuthenticated(false);
+		this.props.history.push('/login');
+	};
 
 
   render() {
+    const childProps = {
+        isAuthenticated: this.state.isAuthenticated,
+        userHasAuthenticated: this.userHasAuthenticated
+    };
     return (
-      <div className="container">
-        <h1 className="text-Center">Chatbot</h1>
-        <div>
-          <ChatFeed
-            maxHeight={250}
-            messages={this.state.messages} // Boolean: list of message objects
-            showSenderName
-          />
-
-          <form onSubmit={e => this.onMessageSubmit(e)}>
-            <input
-              ref={m => {
-                this.message = m;
-              }}
-              placeholder="Type a message..."
-              className="message-input"
-            />
-          </form>
+        <div className="App container">
+            <Navbar fluid collapseOnSelect>
+                <Navbar.Header>
+                    <Navbar.Brand>
+                        <Link to="/">Test application</Link>
+                    </Navbar.Brand>
+                    <Navbar.Toggle />
+                </Navbar.Header>
+                <Navbar.Collapse>
+                    <Nav pullRight>
+                        {this.state.isAuthenticated ? (
+                            <NavItem onClick={this.handleLogout}>Logout</NavItem>
+                        ) : (
+                            <Fragment>
+                                <LinkContainer to="/signup">
+                                    <NavItem>Signup</NavItem>
+                                </LinkContainer>
+                                <LinkContainer to="/login">
+                                    <NavItem>Login</NavItem>
+                                </LinkContainer>
+                            </Fragment>
+                        )}
+                    </Nav>
+                </Navbar.Collapse>
+            </Navbar>
+            <Routes childProps={childProps} />
         </div>
-      </div>
     );
-  }
 }
-
-export default App;
+}
+ 
+export default withRouter(App);

@@ -3,11 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "aws-amplify": "^1.1.22",
+    "aws-amplify-react": "^2.3.2",
     "aws-api-gateway-client": "^0.2.16",
     "axios": "^0.18.0",
+    "bootstrap": "^4.3.1",
     "react": "^16.8.3",
+    "react-bootstrap": "^1.0.0-beta.5",
     "react-chat-ui": "^0.3.2",
     "react-dom": "^16.8.3",
+    "react-router-bootstrap": "^0.24.4",
     "react-router-dom": "^4.3.1",
     "react-scripts": "2.1.5",
     "serverless": "^1.38.0",
@@ -17,7 +22,8 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "deploy": "aws s3 sync build/ s3://n0lean-bucket"
   },
   "eslintConfig": {
     "extends": "react-app"
